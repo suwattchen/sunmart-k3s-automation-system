@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "activepieces.fullname" . }}
+  labels:
+    {{- include "activepieces.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "activepieces.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "activepieces.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: activepieces
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+          ports:
+            - containerPort: 80
+              name: http
+          env:
+            - name: AP_ENGINE_EXECUTABLE_PATH
+              value: "dist/packages/engine/main.js"
+            - name: AP_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: activepieces-secrets
+                  key: SECRET
+            - name: AP_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: activepieces-secrets
+                  key: ENCRYPTION_KEY
+            - name: AP_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: activepieces-secrets
+                  key: JWT_SECRET
+            - name: AP_POSTGRES_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: ACTIVEPIECES_DB_NAME
+            - name: AP_POSTGRES_HOST
+              value: "postgres.automation-system.svc.cluster.local"
+            - name: AP_POSTGRES_PORT
+              value: "5432"
+            - name: AP_POSTGRES_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: ACTIVEPIECES_DB_USER
+            - name: AP_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: activepieces-secrets
+                  key: DB_PASSWORD
+            - name: AP_REDIS_HOST
+              value: "redis.automation-system.svc.cluster.local"
+            - name: AP_REDIS_PORT
+              value: "6379"
+            - name: AP_FRONTEND_URL
+              value: "https://{{ .Values.ingress.host }}"
+            - name: AP_WEBHOOK_TIMEOUT_SECONDS
+              value: "30"
+            - name: AP_TRIGGER_DEFAULT_POLL_INTERVAL
+              value: "5"
+            - name: AP_TELEMETRY_ENABLED
+              value: "false"
+          volumeMounts:
+            - name: activepieces-data
+              mountPath: /root/.activepieces
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: activepieces-data
+          persistentVolumeClaim:
+            claimName: {{ include "activepieces.fullname" . }}-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "activepieces.fullname" . }}-pvc
+  labels:
+    {{- include "activepieces.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/resource-policy": keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.persistence.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}

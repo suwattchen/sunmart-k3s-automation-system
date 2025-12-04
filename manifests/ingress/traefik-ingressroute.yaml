@@ -1,0 +1,8 @@
+---
+# Traefik IngressRoute for Database Services (Internal Use Only)
+# Note: These are typically not exposed externally. This is a placeholder for internal Traefik routing if needed.
+# For K3s, Traefik is usually configured to handle Ingress resources directly.
+# The IngressRoute resources are defined within each Helm Chart.
+
+# This file is mainly for the ClusterIssuer and the Namespace/Secrets/ConfigMap
+# which are applied before Helm Charts.

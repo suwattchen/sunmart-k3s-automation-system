@@ -1,0 +1,28 @@
+replicaCount: 1
+
+image:
+  repository: wordpress
+  pullPolicy: IfNotPresent
+  tag: "6.4-php8.2-apache"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  host: wordpress.sunmart.online
+  certResolver: letsencrypt-prod
+
+persistence:
+  enabled: true
+  storageClass: local-path
+  size: 10Gi
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"

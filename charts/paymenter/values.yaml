@@ -1,0 +1,36 @@
+replicaCount: 1
+
+image:
+  repository: paymenter/paymenter
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  host: billing.sunmart.online
+  certResolver: letsencrypt-prod
+
+persistence:
+  enabled: true
+  storageClass: local-path
+  size: 5Gi
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+
+queueResources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"

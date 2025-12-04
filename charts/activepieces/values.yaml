@@ -1,0 +1,28 @@
+replicaCount: 1
+
+image:
+  repository: activepieces/activepieces
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  host: activepieces.sunmart.online
+  certResolver: letsencrypt-prod
+
+persistence:
+  enabled: true
+  storageClass: local-path
+  size: 5Gi
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"

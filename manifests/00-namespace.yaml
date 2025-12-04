@@ -1,0 +1,8 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: automation-system
+  labels:
+    name: automation-system
+    app: k3s-automation-system

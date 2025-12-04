@@ -1,0 +1,23 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ include "dify.fullname" . }}
+  labels:
+    {{- include "dify.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.ingress.host }}`) && PathPrefix(`/api`)
+      kind: Rule
+      services:
+        - name: {{ include "dify.fullname" . }}-api
+          port: 5001
+    - match: Host(`{{ .Values.ingress.host }}`)
+      kind: Rule
+      services:
+        - name: {{ include "dify.fullname" . }}-web
+          port: 3000
+  tls:
+    secretName: {{ include "dify.fullname" . }}-tls
+    certResolver: {{ .Values.ingress.certResolver }}

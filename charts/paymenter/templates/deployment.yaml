@@ -1,0 +1,171 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "paymenter.fullname" . }}
+  labels:
+    {{- include "paymenter.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "paymenter.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "paymenter.selectorLabels" . | nindent 8 }}
+    spec:
+      initContainers:
+        - name: init-paymenter
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+          command: ['sh', '-c']
+          args:
+            - |
+              php artisan migrate --force
+              php artisan db:seed --force --class=CustomPropertySeeder
+              php artisan storage:link
+          env:
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: paymenter-secrets
+                  key: APP_KEY
+            - name: APP_URL
+              value: "https://{{ .Values.ingress.host }}"
+            - name: DB_CONNECTION
+              value: "mysql"
+            - name: DB_HOST
+              value: "mysql.automation-system.svc.cluster.local"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: PAYMENTER_DB_NAME
+            - name: DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: PAYMENTER_DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: paymenter-secrets
+                  key: DB_PASSWORD
+          volumeMounts:
+            - name: paymenter-storage
+              mountPath: /var/www/paymenter/storage
+      containers:
+        - name: paymenter
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+          ports:
+            - containerPort: 80
+              name: http
+          env:
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: paymenter-secrets
+                  key: APP_KEY
+            - name: APP_URL
+              value: "https://{{ .Values.ingress.host }}"
+            - name: APP_ENV
+              value: "production"
+            - name: APP_DEBUG
+              value: "false"
+            - name: DB_CONNECTION
+              value: "mysql"
+            - name: DB_HOST
+              value: "mysql.automation-system.svc.cluster.local"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: PAYMENTER_DB_NAME
+            - name: DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: PAYMENTER_DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: paymenter-secrets
+                  key: DB_PASSWORD
+            - name: QUEUE_CONNECTION
+              value: "redis"
+            - name: REDIS_HOST
+              value: "redis.automation-system.svc.cluster.local"
+            - name: REDIS_PORT
+              value: "6379"
+          volumeMounts:
+            - name: paymenter-storage
+              mountPath: /var/www/paymenter/storage
+            - name: paymenter-extensions
+              mountPath: /var/www/paymenter/app/Extensions/Custom/WebhookSender
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        - name: paymenter-queue
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+          command: ['php', 'artisan', 'queue:work', '--tries=3']
+          env:
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: paymenter-secrets
+                  key: APP_KEY
+            - name: DB_CONNECTION
+              value: "mysql"
+            - name: DB_HOST
+              value: "mysql.automation-system.svc.cluster.local"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: PAYMENTER_DB_NAME
+            - name: DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: PAYMENTER_DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: paymenter-secrets
+                  key: DB_PASSWORD
+            - name: QUEUE_CONNECTION
+              value: "redis"
+            - name: REDIS_HOST
+              value: "redis.automation-system.svc.cluster.local"
+          volumeMounts:
+            - name: paymenter-storage
+              mountPath: /var/www/paymenter/storage
+          resources:
+            {{- toYaml .Values.queueResources | nindent 12 }}
+      volumes:
+        - name: paymenter-storage
+          persistentVolumeClaim:
+            claimName: {{ include "paymenter.fullname" . }}-pvc
+        - name: paymenter-extensions
+          configMap:
+            name: paymenter-webhook-extension
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "paymenter.fullname" . }}-pvc
+  labels:
+    {{- include "paymenter.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/resource-policy": keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.persistence.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}

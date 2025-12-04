@@ -1,0 +1,18 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ include "activepieces.fullname" . }}
+  labels:
+    {{- include "activepieces.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.ingress.host }}`)
+      kind: Rule
+      services:
+        - name: {{ include "activepieces.fullname" . }}
+          port: 80
+  tls:
+    secretName: {{ include "activepieces.fullname" . }}-tls
+    certResolver: {{ .Values.ingress.certResolver }}
