@@ -28,46 +28,127 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: wordpress
+        - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - name: http
-              containerPort: 80
-              protocol: TCP
           env:
-            - name: WORDPRESS_DB_HOST
-              value: "mysql.automation-system.svc.cluster.local"
-            - name: WORDPRESS_DB_NAME
-              valueFrom:
-                configMapKeyRef:
-                  name: db-config
-                  key: MYSQL_DATABASE
-            - name: WORDPRESS_DB_USER
-              valueFrom:
-                configMapKeyRef:
-                  name: db-config
-                  key: MYSQL_USER
-            - name: WORDPRESS_DB_PASSWORD
+            - name: WORDPRESS_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: wordpress-secrets
-                  key: WORDPRESS_DB_PASSWORD
-            - name: WORDPRESS_CONFIG_EXTRA
-              value: |
-                define('WP_HOME', 'https://{{ .Values.ingress.host }}');
-                define('WP_SITEURL', 'https://{{ .Values.ingress.host }}');
+                  name: {{ include "wordpress.fullname" . }}
+                  key: wordpress-username
+            - name: WORDPRESS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: wordpress-password
+            - name: WORDPRESS_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: wordpress-email
+            - name: WORDPRESS_FIRST_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: wordpress-first-name
+            - name: WORDPRESS_LAST_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: wordpress-last-name
+            - name: WORDPRESS_BLOG_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: wordpress-blog-name
+            - name: MARIADB_HOST
+              value: {{ .Values.externalDatabase.host }}
+            - name: MARIADB_PORT_NUMBER
+              value: "3306"
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: mysql-root-password
+            - name: MARIADB_DATABASE
+              value: {{ .Values.externalDatabase.database }}
+            - name: WORDPRESS_TABLE_PREFIX
+              value: "wp_"
+            - name: WORDPRESS_BLOG_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: wordpress-blog-name
+            - name: WORDPRESS_SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: smtp-host
+            - name: WORDPRESS_SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: smtp-port
+            - name: WORDPRESS_SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: smtp-user
+            - name: WORDPRESS_SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: smtp-password
+            - name: WORDPRESS_SMTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: smtp-username
+            - name: WORDPRESS_SMTP_PROTOCOL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: smtp-protocol
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
           livenessProbe:
-            {{- toYaml .Values.livenessProbe | nindent 12 }}
+            httpGet:
+              path: /wp-login.php
+              port: http
+            {{- if .Values.livenessProbe.enabled }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+            {{- else }}
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            {{- end }}
           readinessProbe:
-            {{- toYaml .Values.readinessProbe | nindent 12 }}
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            httpGet:
+              path: /wp-login.php
+              port: http
+            {{- if .Values.readinessProbe.enabled }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+            {{- else }}
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            {{- end }}
           volumeMounts:
             - name: wordpress-data
-              mountPath: /var/www/html
+              mountPath: /bitnami/wordpress
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -83,16 +164,14 @@ spec:
       volumes:
         - name: wordpress-data
           persistentVolumeClaim:
-            claimName: {{ include "wordpress.fullname" . }}-pvc
+            claimName: {{ include "wordpress.fullname" . }}-wordpress
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "wordpress.fullname" . }}-pvc
+  name: {{ include "wordpress.fullname" . }}-wordpress
   labels:
     {{- include "wordpress.labels" . | nindent 4 }}
-  annotations:
-    "helm.sh/resource-policy": keep
 spec:
   accessModes:
     - ReadWriteOnce

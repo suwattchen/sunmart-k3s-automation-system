@@ -1,30 +1,128 @@
+# Default values for wordpress.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
 replicaCount: 1
 
 image:
-  repository: wordpress
+  registry: docker.io
+  repository: bitnami/wordpress
+  tag: "6.4.2-debian-12-r10"
   pullPolicy: IfNotPresent
-  tag: "6.4-php8.2-apache"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 0
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: false
+  runAsUser: 0
 
 service:
   type: ClusterIP
   port: 80
+  targetPort: http
+  nodePort: null
 
 ingress:
-  enabled: true
-  host: wordpress.sunmart.online
-  certResolver: letsencrypt-prod
-  annotations:
-    kubernetes.io/ingress.class: traefik
-
-persistence:
-  enabled: true
-  storageClass: local-path
-  size: 10Gi
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: sunmart.online
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
 
 resources:
-  requests:
-    memory: "512Mi"
-    cpu: "250m"
   limits:
-    memory: "1Gi"
-    cpu: "1000m"
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# WordPress specific values
+wordpressUsername: user
+wordpressPassword: ""
+wordpressEmail: user@example.com
+wordpressFirstName: FirstName
+wordpressLastName: LastName
+wordpressBlogName: User's Blog
+
+# Database configuration
+mariadb:
+  enabled: false
+
+externalDatabase:
+  host: mysql-service
+  user: root
+  password: ""
+  database: wordpress
+
+# WordPress configuration
+allowOverrideNone: false
+htaccessPersistenceEnabled: false
+smtpHost: ""
+smtpPort: 587
+smtpUser: ""
+smtpPassword: ""
+smtpUsername: ""
+smtpProtocol: tls
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: "local-path"
+  accessMode: ReadWriteOnce
+  size: 8Gi
+  path: /bitnami/wordpress
+
+# Liveness and Readiness Probes
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+  successThreshold: 1

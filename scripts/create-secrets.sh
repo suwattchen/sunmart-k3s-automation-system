@@ -22,6 +22,7 @@ kubectl create secret generic dify-secrets \
   --from-literal=SECRET_KEY=$DIFY_SECRET_KEY \
   --from-literal=API_KEY=$DIFY_API_KEY \
   --from-literal=DB_PASSWORD=$DIFY_DB_PASSWORD \
+  --from-literal=REDIS_URL=$REDIS_URL \
   -n automation-system --dry-run=client -o yaml | kubectl apply -f -
 
 # Create wordpress-secrets secret
@@ -43,6 +44,12 @@ kubectl create secret generic paymenter-secrets \
   --from-literal=APP_KEY=$PAYMENTER_APP_KEY \
   --from-literal=DB_PASSWORD=$PAYMENTER_DB_PASSWORD \
   --from-literal=ADMIN_PASSWORD=$PAYMENTER_ADMIN_PASSWORD \
+  -n automation-system --dry-run=client -o yaml | kubectl apply -f -
+
+# Create redis-credentials secret
+kubectl create secret generic redis-credentials \
+  --from-literal=REDIS_PASSWORD=$REDIS_PASSWORD \
+  --from-literal=REDIS_URL=$REDIS_URL \
   -n automation-system --dry-run=client -o yaml | kubectl apply -f -
 
 # Create external-api-keys secret

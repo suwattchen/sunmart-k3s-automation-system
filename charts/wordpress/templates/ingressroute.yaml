@@ -1,18 +1,50 @@
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: {{ include "wordpress.fullname" . }}
+  name: {{ include "wordpress.fullname" . }}-ingress
   labels:
     {{- include "wordpress.labels" . | nindent 4 }}
 spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`{{ .Values.ingress.host }}`)
+    - match: Host(`sunmart.online`) && PathPrefix(`/`)
       kind: Rule
       services:
         - name: {{ include "wordpress.fullname" . }}
           port: 80
+      middlewares:
+        - name: {{ include "wordpress.fullname" . }}-redirect
   tls:
     secretName: {{ include "wordpress.fullname" . }}-tls
-    certResolver: {{ .Values.ingress.certResolver }}
+    domains:
+      - main: sunmart.online
+        sans:
+          - www.sunmart.online
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "wordpress.fullname" . }}-redirect
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wordpress.fullname" . }}
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "wordpress.selectorLabels" . | nindent 4 }}
