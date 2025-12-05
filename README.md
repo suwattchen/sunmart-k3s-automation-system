@@ -15,12 +15,14 @@
 ## 🏗️ สถาปัตยกรรมระบบ
 
 ```
-┌─────────────┐
-│  LINE OA    │
-│  (Customer) │
-└──────┬──────┘
-       │
-       ▼
+Internet
+    ↓
+Cloudflare Edge
+    ↓
+systemd cloudflared (192.168.1.129)
+    ↓
+Traefik (Ingress Controller)
+    ↓
 ┌─────────────────────────────────────────────────────────┐
 │              Sunmart Cloud K3s Cluster                  │
 │                                                         │
@@ -40,13 +42,9 @@
               │  Telegram Bot    │
               │  (Admin Approval)│
               └──────────────────┘
-                         │
-                         ▼
-              ┌──────────────────┐
-              │   Cloudflare     │
-              │  (Provisioning)  │
-              └──────────────────┘
 ```
+
+**หมายเหตุ:** ใช้ systemd cloudflared ที่มีอยู่แล้ว (PID 1993) แทนการติดตั้งใน Kubernetes เพื่อความปลอดภัยและหลีกเลี่ยงปัญหาการชนกัน
 
 ## 📁 โครงสร้าง Repository
 

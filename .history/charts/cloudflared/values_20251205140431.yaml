@@ -1,0 +1,65 @@
+replicaCount: 1
+
+image:
+  repository: cloudflare/cloudflared
+  pullPolicy: IfNotPresent
+  tag: "2024.9.1"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false  # We don't need Ingress for cloudflared itself
+
+persistence:
+  enabled: false
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "50m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+
+# Cloudflare Tunnel Configuration
+tunnel:
+  name: "sunmart-k3s-tunnel"
+  credentialsFile: "/etc/cloudflared/credentials.json"
+  
+  # Origin Configuration
+  originRequest:
+    connectTimeout: 30s
+    tlsTimeout: 10s
+    tcpKeepAlive: 30s
+    noHappyEyeballs: false
+    keepAliveConnections: 100
+    keepAliveTimeout: 1m30s
+
+  # Ingress Rules
+  ingress:
+    - hostname: dify.sunmart.online
+      service: http://dify-web.automation-system.svc.cluster.local
+    - hostname: wordpress.sunmart.online
+      service: http://wordpress.automation-system.svc.cluster.local
+    - hostname: activepieces.sunmart.online
+      service: http://activepieces.automation-system.svc.cluster.local
+    - hostname: billing.sunmart.online
+      service: http://paymenter.automation-system.svc.cluster.local
+    - service: http_status:404
+
+# Cloudflare Credentials
+credentials:
+  # You need to create this secret manually:
+  # kubectl create secret generic cloudflare-credentials \
+  #   --from-file=credentials.json=/path/to/your/credentials.json \
+  #   -n automation-system
+  secretName: cloudflare-credentials
+  mountPath: /etc/cloudflared
+
+# Additional cloudflared arguments
+args:
+  - tunnel
+  - --credentials-file=/etc/cloudflared/credentials.json
+  - run

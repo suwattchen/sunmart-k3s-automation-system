@@ -1,0 +1,50 @@
+# Git Ignore File for K3s Automation System
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.example
+.env.*
+
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Node modules (if any)
+node_modules/
+
+# Backup files
+*.bak
+*.backup
+
+# SSL certificates (if generated locally)
+*.crt
+*.key
+*.pem
+
+# Database dumps
+*.sql
+*.dump
+
+# Secrets and sensitive files
+secrets/
+credentials/

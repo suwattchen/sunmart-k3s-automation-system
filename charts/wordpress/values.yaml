@@ -13,6 +13,8 @@ ingress:
   enabled: true
   host: wordpress.sunmart.online
   certResolver: letsencrypt-prod
+  annotations:
+    kubernetes.io/ingress.class: traefik
 
 persistence:
   enabled: true
