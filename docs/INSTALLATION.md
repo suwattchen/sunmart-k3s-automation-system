@@ -49,28 +49,14 @@ helm install cert-manager jetstack/cert-manager \
 
 หลังจากติดตั้งแล้ว ให้สร้าง `ClusterIssuer` เพื่อให้ Cert-Manager สามารถออก Certificate ได้:
 
-```yaml
-# cluster-issuer.yaml
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-prod
-spec:
-  acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: admin@sunmart.online # <--- แก้ไขเป็นอีเมลของคุณ
-    privateKeySecretRef:
-      name: letsencrypt-prod-account-key
-    solvers:
-      - http01:
-          ingress:
-            class: traefik # <--- ใช้ Traefik Ingress Class
-```
+เราได้เตรียมไฟล์ Manifest สำหรับ `ClusterIssuer` ไว้ที่ `manifests/cert-manager/cluster-issuer.yaml` แล้ว คุณสามารถตรวจสอบและแก้ไขได้ตามต้องการ
 
 ```bash
-# บันทึกไฟล์ cluster-issuer.yaml
-kubectl apply -f cluster-issuer.yaml
+# ใช้คำสั่ง apply เพื่อสร้าง ClusterIssuer
+kubectl apply -f manifests/cert-manager/cluster-issuer.yaml
 ```
+
+**หมายเหตุ:** โปรดตรวจสอบให้แน่ใจว่าอีเมลในไฟล์ `manifests/cert-manager/cluster-issuer.yaml` ถูกต้องก่อนดำเนินการ
 
 ## 3. การติดตั้งระบบอัตโนมัติด้วย Helm
 

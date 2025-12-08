@@ -21,8 +21,8 @@ helm install cert-manager jetstack/cert-manager \
   --namespace cert-manager --create-namespace \
   --version v1.13.2 --set installCRDs=true
 
-# สร้าง ClusterIssuer (ต้องทำด้วยมือตามคู่มือ INSTALLATION.md)
-# kubectl apply -f cluster-issuer.yaml
+# สร้าง ClusterIssuer (ตรวจสอบ Email ในไฟล์ก่อน)
+kubectl apply -f manifests/cert-manager/cluster-issuer.yaml
 ```
 
 ### 3. Clone Repository และตั้งค่า

@@ -1,0 +1,22 @@
+---
+# Note: This file should be applied after Cert-Manager is installed.
+# The email address is pulled from the .env file for consistency.
+
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    # You must replace this with your email address
+    email: ${CERT_MANAGER_EMAIL}
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      # Secret resource that will be used to store the ACME account's private key.
+      name: letsencrypt-prod-account-key
+    solvers:
+      # Use the HTTP-01 challenge solver
+      - http01:
+          ingress:
+            # Use the Traefik Ingress Class
+            class: traefik
